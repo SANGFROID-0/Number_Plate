@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Integrated Parking System — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #0d0f17;
+      --bg2:       #13162030;
+      --surface:   #181c2e;
+      --surface2:  #1e2340;
+      --border:    #ffffff12;
+      --accent:    #6c63ff;
+      --accent2:   #00d4aa;
+      --danger:    #ff4d6d;
+      --warn:      #ffb703;
+      --text:      #e8eaf6;
+      --muted:     #8892b0;
+      --radius:    14px;
+      --glow:      0 0 24px #6c63ff33;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOP NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -.3px;
+    }
+    .logo .icon { font-size: 1.5rem; }
+    .logo span { background: linear-gradient(135deg,#6c63ff,#00d4aa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .8rem;
+      color: var(--muted);
+      background: #ffffff08;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: .3rem .85rem;
+    }
+    .dot { width:8px; height:8px; border-radius:50%; background:#00d4aa; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .last-update { font-size: .72rem; color: var(--muted); }
+
+    /* ── LAYOUT ── */
+    main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ── STAT CARDS ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+    .stat-card::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:3px;
+      background: var(--card-accent, var(--accent));
+    }
+    .stat-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: .5rem; }
+    .stat-value { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .stat-sub { font-size: .8rem; color: var(--muted); margin-top: .35rem; }
+
+    /* ── GRID ── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media(max-width:900px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+
+    /* ── PANEL ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: .9rem;
+    }
+    .panel-header .title { display:flex; align-items:center; gap:.5rem; }
+    .panel-body { padding: 1.25rem 1.5rem; }
+
+    /* ── SLOT GRID ── */
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(80px,1fr)); gap: .75rem; }
+    .slot {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      font-weight: 600;
+      border: 2px solid transparent;
+      transition: all .3s;
+      cursor: default;
+    }
+    .slot.free   { background: #00d4aa18; border-color: #00d4aa44; color: #00d4aa; }
+    .slot.occupied { background: #ff4d6d18; border-color: #ff4d6d44; color: #ff4d6d; }
+    .slot .slot-icon { font-size: 1.4rem; margin-bottom: 2px; }
+    .slot .slot-id { font-size: .7rem; opacity: .7; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th {
+      text-align: left;
+      padding: .6rem 1rem;
+      font-size: .7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: .7rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #ffffff05; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .2rem .6rem;
+      border-radius: 99px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .badge.in  { background: #00d4aa20; color: #00d4aa; }
+    .badge.out { background: #ff4d6d20; color: #ff4d6d; }
+    .badge.car { background: #6c63ff20; color: #a89cff; }
+    .badge.motorcycle,.badge.bike { background: #ffb70320; color: #ffb703; }
+    .badge.bus,.badge.truck { background: #0096ff20; color: #6cc5ff; }
+    .plate {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: .9rem;
+      background: #ffffff0a;
+      padding: .15rem .5rem;
+      border-radius: 6px;
+      letter-spacing: 1.5px;
+    }
+    .empty-state { text-align:center; padding: 2.5rem 1rem; color: var(--muted); font-size:.9rem; }
+    .empty-state .big { font-size: 2.5rem; margin-bottom:.5rem; }
+
+    /* ── FORM ── */
+    .form-section { display: flex; flex-direction: column; gap: 1.25rem; }
+    .tabs { display: flex; gap: .5rem; margin-bottom: .5rem; }
+    .tab-btn {
+      flex: 1;
+      padding: .5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tab-pane { display: none; flex-direction: column; gap: .85rem; }
+    .tab-pane.active { display: flex; }
+    label { font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .3rem; display: block; }
+    input, select {
+      width: 100%;
+      padding: .65rem .9rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: .88rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn {
+      padding: .7rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-size: .88rem;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #7c74ff; transform: translateY(-1px); }
+    .btn-success { background: var(--accent2); color: #0d0f17; }
+    .btn-success:hover { background: #00e6b8; }
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: .85rem 1.25rem;
+      border-radius: 10px;
+      font-size: .88rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      z-index: 1000;
+      animation: slideIn .3s ease;
+      box-shadow: 0 8px 32px #00000060;
+      max-width: 320px;
+    }
+    .toast.ok  { border-left: 3px solid var(--accent2); }
+    .toast.err { border-left: 3px solid var(--danger); }
+    @keyframes slideIn { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
+
+    /* ── LOG FEED ── */
+    .log-feed { display: flex; flex-direction: column; gap: .6rem; max-height: 320px; overflow-y: auto; }
+    .log-entry {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .6rem .85rem;
+      background: #ffffff05;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: .82rem;
+    }
+    .log-entry .log-icon { font-size: 1.1rem; }
+    .log-info { flex: 1; }
+    .log-plate { font-weight: 700; letter-spacing: 1px; }
+    .log-time { font-size: .72rem; color: var(--muted); }
+
+    /* ── REFRESH BTN ── */
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 600;
+      padding: .3rem .75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+    }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <span class="icon">🅿️</span>
+    <span>Integrated Parking System</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div class="status-pill">
+      <div class="dot" id="apiDot"></div>
+      <span id="apiStatus">Connecting…</span>
+    </div>
+    <span class="last-update" id="lastUpdate"></span>
+  </div>
+</nav>
+
+<main>
+
+  <!-- STAT CARDS -->
+  <div class="stats">
+    <div class="stat-card" style="--card-accent:#6c63ff">
+      <div class="stat-label">Total Owners</div>
+      <div class="stat-value" id="s-owners">—</div>
+      <div class="stat-sub">Registered residents</div>
+    </div>
+    <div class="stat-card" style="--card-accent:#00d4aa">
+      <div class="stat-label">Free Slots</div>
+      <div class="stat-value" id="s-free">—</div>
+      <div class="stat-sub" id="s-free-sub">of — total</div>
+    </div>
+    <div class="stat-card" style="--card-accent:#ff4d6d">
+      <div class="stat-label">Occupied Slots</div>
+      <div class="stat-value" id="s-occ">—</div>
+      <div class="stat-sub">Vehicles currently inside</div>
+    </div>
+    <div class="stat-card" style="--card-accent:#ffb703">
+      <div class="stat-label">Registered Vehicles</div>
+      <div class="stat-value" id="s-veh">—</div>
+      <div class="stat-sub">Across all owners</div>
+    </div>
+    <div class="stat-card" style="--card-accent:#0096ff">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-value" id="s-logs">—</div>
+      <div class="stat-sub">Entry / exit events</div>
+    </div>
+    <div class="stat-card" style="--card-accent:#ff6b35">
+      <div class="stat-label">Guest Visits</div>
+      <div class="stat-value" id="s-guests">—</div>
+      <div class="stat-sub">Unregistered vehicles</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Slot Map + Registration Form -->
+  <div class="grid3">
+
+    <!-- Slot Map -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="title">🅿️ Parking Slot Map</span>
+        <button class="refresh-btn" onclick="loadAll()"><span id="rIcon">⟳</span> Refresh</button>
+      </div>
+      <div class="panel-body">
+        <div class="slot-grid" id="slotGrid">
+          <div class="empty-state"><div class="big">🅿️</div>Loading slots…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="title">➕ Add New</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-section">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('owner')">Owner</button>
+            <button class="tab-btn" onclick="switchTab('vehicle')">Vehicle</button>
+            <button class="tab-btn" onclick="switchTab('slot')">Slot</button>
+          </div>
+
+          <!-- Owner Tab -->
+          <div class="tab-pane active" id="tab-owner">
+            <div>
+              <label>Full Name</label>
+              <input type="text" id="ownerName" placeholder="e.g. Ravi Sharma"/>
+            </div>
+            <div>
+              <label>Flat No.</label>
+              <input type="text" id="ownerFlat" placeholder="e.g. A-304"/>
+            </div>
+            <div>
+              <label>Phone</label>
+              <input type="tel" id="ownerPhone" placeholder="e.g. 9876543210"/>
+            </div>
+            <button class="btn btn-primary" onclick="addOwner()">➕ Add Owner</button>
+          </div>
+
+          <!-- Vehicle Tab -->
+          <div class="tab-pane" id="tab-vehicle">
+            <div>
+              <label>License Plate</label>
+              <input type="text" id="vPlate" placeholder="e.g. MH12AB1234" style="text-transform:uppercase"/>
+            </div>
+            <div>
+              <label>Vehicle Type</label>
+              <select id="vType">
+                <option value="car">Car</option>
+                <option value="motorcycle">Motorcycle</option>
+                <option value="bus">Bus</option>
+                <option value="truck">Truck</option>
+              </select>
+            </div>
+            <div>
+              <label>Owner ID</label>
+              <input type="number" id="vOwnerId" placeholder="e.g. 1"/>
+            </div>
+            <button class="btn btn-primary" onclick="registerVehicle()">🚗 Register Vehicle</button>
+          </div>
+
+          <!-- Slot Tab -->
+          <div class="tab-pane" id="tab-slot">
+            <div>
+              <label>Owner ID</label>
+              <input type="number" id="sOwnerId" placeholder="e.g. 1"/>
+            </div>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.5">
+              This will create a new parking slot and assign it to the owner. One owner can have multiple slots.
+            </p>
+            <button class="btn btn-success" onclick="allocateSlot()">🅿️ Allocate Slot</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Vehicles -->
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="panel-header">
+      <span class="title">🚗 Registered Vehicles</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Plate</th>
+            <th>Type</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody id="vehicleTable">
+          <tr><td colspan="3" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 2b: Audit Log (full width table) -->
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="panel-header">
+      <span class="title">📝 Audit Log &mdash; All Entry / Exit Records</span>
+      <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Plate No.</th>
+            <th>Owner</th>
+            <th>Vehicle Type</th>
+            <th>Action</th>
+            <th>Entry Time</th>
+            <th>Exit Time</th>
+          </tr>
+        </thead>
+        <tbody id="auditTable">
+          <tr><td colspan="7" class="empty-state">Loading audit logs…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 3: Owners Table (full width) -->
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="panel-header">
+      <span class="title">👤 Owners</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Flat</th>
+            <th>Phone</th>
+          </tr>
+        </thead>
+        <tbody id="ownerTable">
+          <tr><td colspan="4" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 4: Guest Log (full width) -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="title">🚨 Guest / Visitor Log</span>
+      <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Plate</th>
+            <th>Action</th>
+            <th>Date &amp; Time</th>
+            <th>Status</th>
+            <th>Visit Count</th>
+          </tr>
+        </thead>
+        <tbody id="guestTable">
+          <tr><td colspan="5" class="empty-state">No guest visits yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = 'http://localhost:8080';
+let allOwners = [];
+
+// ── Fetch all data ────────────────────────────────────────────────────────────
+async function loadAll() {
+  const icon = document.getElementById('rIcon');
+  icon.classList.add('spin');
+  try {
+    const [owners, vehicles, slots, logs, guestLogs, auditLogs] = await Promise.all([
+      fetch(`${API}/owners`).then(r => r.json()),
+      fetch(`${API}/vehicles`).then(r => r.json()),
+      fetch(`${API}/slots`).then(r => r.json()),
+      fetch(`${API}/logs`).then(r => r.json()),
+      fetch(`${API}/guestLogs`).then(r => r.json()),
+      fetch(`${API}/audit/all`).then(r => r.json()),
+    ]);
+    allOwners = owners;
+    renderStats(owners, vehicles, slots, logs, guestLogs);
+    renderSlots(slots);
+    renderVehicles(vehicles, owners);
+    renderOwners(owners);
+    renderAuditLogs(auditLogs, vehicles, owners);
+    renderGuestLogs(guestLogs);
+    setStatus(true);
+  } catch (e) {
+    setStatus(false);
+    console.error(e);
+  }
+  icon.classList.remove('spin');
+}
+
+// ── Status indicator ──────────────────────────────────────────────────────────
+function setStatus(ok) {
+  const dot = document.getElementById('apiDot');
+  const txt = document.getElementById('apiStatus');
+  dot.style.background = ok ? '#00d4aa' : '#ff4d6d';
+  txt.textContent = ok ? 'Backend Live' : 'Backend Offline';
+  document.getElementById('lastUpdate').textContent =
+    'Updated ' + new Date().toLocaleTimeString();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function renderStats(owners, vehicles, slots, logs, guestLogs) {
+  const free = slots.filter(s => !s.occupied).length;
+  const occ  = slots.filter(s =>  s.occupied).length;
+  document.getElementById('s-owners').textContent  = owners.length;
+  document.getElementById('s-free').textContent    = free;
+  document.getElementById('s-free-sub').textContent = `of ${slots.length} total`;
+  document.getElementById('s-occ').textContent     = occ;
+  document.getElementById('s-veh').textContent     = vehicles.length;
+  document.getElementById('s-logs').textContent    = logs.length;
+  document.getElementById('s-guests').textContent  = guestLogs ? guestLogs.length : 0;
+}
+
+// ── Slot Map ──────────────────────────────────────────────────────────────────
+function renderSlots(slots) {
+  const grid = document.getElementById('slotGrid');
+  if (!slots.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="big">🅿️</div>No slots yet</div>`;
+    return;
+  }
+  grid.innerHTML = slots.map(s => `
+    <div class="slot ${s.occupied ? 'occupied' : 'free'}" title="Slot #${s.slotId}">
+      <div class="slot-icon">${s.occupied ? '🚗' : '✅'}</div>
+      <div>#${s.slotId}</div>
+      <div class="slot-id">${s.occupied ? 'Full' : 'Free'}</div>
+    </div>
+  `).join('');
+}
+
+// ── Vehicles ──────────────────────────────────────────────────────────────────
+function renderVehicles(vehicles, owners) {
+  const tb = document.getElementById('vehicleTable');
+  if (!vehicles.length) {
+    tb.innerHTML = `<tr><td colspan="3"><div class="empty-state"><div class="big">🚗</div>No vehicles registered</div></td></tr>`;
+    return;
+  }
+  const ownerMap = {};
+  owners.forEach(o => ownerMap[o.ownerId] = o.name);
+  tb.innerHTML = vehicles.map(v => `
+    <tr>
+      <td><span class="plate">${v.plateNo || '—'}</span></td>
+      <td><span class="badge ${v.type || 'car'}">${cap(v.type)}</span></td>
+      <td>${v.owner ? (ownerMap[v.owner.ownerId] || '#' + v.owner.ownerId) : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Owners ────────────────────────────────────────────────────────────────────
+function renderOwners(owners) {
+  const tb = document.getElementById('ownerTable');
+  if (!owners.length) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="big">👤</div>No owners yet</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = owners.map(o => `
+    <tr>
+      <td style="color:var(--muted)">#${o.ownerId}</td>
+      <td><strong>${o.name}</strong></td>
+      <td>${o.flatNo || '—'}</td>
+      <td>${o.phone || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Audit Log Table ───────────────────────────────────────────────────────────
+function renderAuditLogs(auditLogs, vehicles, owners) {
+  const tb = document.getElementById('auditTable');
+  if (!auditLogs || !auditLogs.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="big">📝</div>No audit logs yet. Run the vision module!</div></td></tr>`;
+    return;
+  }
+
+  // Build lookup maps
+  const vMap = {};   // vehicleId -> { plateNo, type, ownerId }
+  vehicles.forEach(v => vMap[v.vehicleId] = v);
+  const oMap = {};   // ownerId -> name
+  owners.forEach(o => oMap[o.ownerId] = o.name);
+
+  const sorted = [...auditLogs].sort((a,b) => (b.logId || 0) - (a.logId || 0));
+  tb.innerHTML = sorted.map(l => {
+    const isIn    = l.action === 'in';
+    const veh     = l.vehicle ? vMap[l.vehicle.vehicleId] || l.vehicle : null;
+    const plate   = veh ? (veh.plateNo || '—') : '—';
+    const vType   = veh ? (veh.type || '—') : '—';
+    const ownerName = veh && veh.owner ? (oMap[veh.owner.ownerId] || '#' + veh.owner.ownerId) : '—';
+    const inTime  = l.inTime  ? new Date(l.inTime).toLocaleString()  : '—';
+    const outTime = l.outTime ? new Date(l.outTime).toLocaleString() : '—';
+    return `
+      <tr>
+        <td style="color:var(--muted)">#${l.logId}</td>
+        <td><span class="plate">${plate}</span></td>
+        <td>${ownerName}</td>
+        <td><span class="badge ${vType}">${cap(vType)}</span></td>
+        <td><span class="badge ${isIn ? 'in' : 'out'}">${isIn ? '↩ IN' : '↪ OUT'}</span></td>
+        <td style="font-size:.8rem;color:var(--muted)">${inTime}</td>
+        <td style="font-size:.8rem;color:var(--muted)">${outTime}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Forms ─────────────────────────────────────────────────────────────────────
+async function addOwner() {
+  const name  = document.getElementById('ownerName').value.trim();
+  const flatNo = document.getElementById('ownerFlat').value.trim();
+  const phone = document.getElementById('ownerPhone').value.trim();
+  if (!name) return toast('Name is required', 'err');
+  try {
+    const r = await fetch(`${API}/addOwner`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, flatNo, phone })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const owner = await r.json();
+    toast(`✅ Owner added (ID: ${owner.ownerId})`, 'ok');
+    document.getElementById('ownerName').value = '';
+    document.getElementById('ownerFlat').value = '';
+    document.getElementById('ownerPhone').value = '';
+    loadAll();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+}
+
+async function registerVehicle() {
+  const plateNo = document.getElementById('vPlate').value.trim().toUpperCase();
+  const type    = document.getElementById('vType').value;
+  const ownerId = parseInt(document.getElementById('vOwnerId').value);
+  if (!plateNo || !ownerId) return toast('Plate & Owner ID required', 'err');
+  try {
+    const r = await fetch(`${API}/register`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ plateNo, type, ownerId })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    toast(`✅ ${plateNo} registered`, 'ok');
+    document.getElementById('vPlate').value = '';
+    loadAll();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+}
+
+async function allocateSlot() {
+  const ownerId = parseInt(document.getElementById('sOwnerId').value);
+  if (!ownerId) return toast('Owner ID required', 'err');
+  try {
+    const r = await fetch(`${API}/allocateSlot`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ownerId })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    toast('✅ Slot allocated', 'ok');
+    document.getElementById('sOwnerId').value = '';
+    loadAll();
+  } catch(e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// ── Guest Log ─────────────────────────────────────────────────────────────────
+function renderGuestLogs(guestLogs) {
+  const tb = document.getElementById('guestTable');
+  if (!guestLogs || !guestLogs.length) {
+    tb.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big">🚨</div>No guest visits yet</div></td></tr>`;
+    return;
+  }
+
+  // Count visits per plate
+  const visitCount = {};
+  guestLogs.forEach(l => {
+    visitCount[l.plateNo] = (visitCount[l.plateNo] || 0) + 1;
+  });
+
+  // Latest entry per plate (for "last seen" info)
+  const lastSeen = {};
+  guestLogs.forEach(l => {
+    if (!lastSeen[l.plateNo] || new Date(l.visitTime) > new Date(lastSeen[l.plateNo])) {
+      lastSeen[l.plateNo] = l.visitTime;
+    }
+  });
+
+  const sorted = [...guestLogs].sort((a,b) => new Date(b.visitTime) - new Date(a.visitTime));
+  tb.innerHTML = sorted.map(l => {
+    const isIn      = l.action === 'in';
+    const count     = visitCount[l.plateNo] || 1;
+    const returning = count > 1;
+    return `
+      <tr>
+        <td><span class="plate">${l.plateNo}</span></td>
+        <td><span class="badge ${isIn ? 'in' : 'out'}">${isIn ? '↩ ENTRY' : '↪ EXIT'}</span></td>
+        <td style="color:var(--muted);font-size:.8rem">${new Date(l.visitTime).toLocaleString()}</td>
+        <td>
+          ${ returning
+            ? `<span class="badge" style="background:#ffb70320;color:#ffb703">🔁 Returning</span>`
+            : `<span class="badge" style="background:#6c63ff20;color:#a89cff">🆕 First Time</span>`
+          }
+        </td>
+        <td style="color:var(--muted);font-size:.85rem;font-weight:600">${count} visit${count>1?'s':''}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'; }
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAll();
+setInterval(loadAll, 10000); // auto-refresh every 10s
+</script>
+</body>
+</html>
